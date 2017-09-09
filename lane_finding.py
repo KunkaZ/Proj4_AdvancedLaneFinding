@@ -14,6 +14,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import glob
+from moviepy.editor import VideoFileClip
+from IPython.display import HTML
+
 output_images_path  = 'output_images/'
 test_imges_path     = 'test_images/'
 examples_path       = 'examples/'
@@ -199,8 +202,10 @@ def window_mask(width, height, img_ref, center,level):
     output[int(img_ref.shape[0]-(level+1)*height):int(img_ref.shape[0]-level*height),max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
     return output
 
-def find_window_centroids(warped, window_width, window_height, margin):
-    
+def find_window_centroids(warped):
+    window_width = 50 
+    window_height = 80 # Break image into 9 vertical layers since image height is 720
+    margin = 100 # How much to slide left and right for searching
     window_centroids = [] # Store the (left,right) window centroid positions per level
     window = np.ones(window_width) # Create our window template that we will use for convolutions
     
@@ -259,21 +264,25 @@ def get_lane_curvature(lane_img):
     # righty = righty[::-1]  
 
     # cruve fit
+
     left_fit = np.polyfit(lefty, leftx, 2)
-    left_fitx = left_fit[0]*lefty**2 + left_fit[1]*lefty + left_fit[2]
     right_fit = np.polyfit(righty, rightx, 2)
-    right_fitx = right_fit[0]*righty**2 + right_fit[1]*righty + right_fit[2]
+
+    ploty  = np.linspace(0, binary_curv_img.shape[0]-1, binary_curv_img.shape[0] )
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
 
     plt.plot(leftx,lefty, 'o', color='red', markersize=1)
     plt.plot(rightx,righty, 'o', color='blue', markersize=1)
-    plt.plot(left_fitx, lefty, color='green', linewidth=3)
-    plt.plot(right_fitx, righty, color='green', linewidth=3)
+    plt.plot(left_fitx, ploty, color='green', linewidth=3)
+    plt.plot(right_fitx, ploty, color='green', linewidth=3)
     plt.gca().invert_yaxis() 
     plt.show()
 
     # calculate curvature in pixel
-    left_y_eval = np.max(lefty)
-    right_y_eval = np.max(righty)
+    left_y_eval = np.max(ploty)
+    right_y_eval = np.max(ploty)
+    y_eval = np.max(ploty)
     left_curverad = ((1 + (2*left_fit[0]*left_y_eval + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
     right_curverad = ((1 + (2*right_fit[0]*right_y_eval + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
     print(left_curverad, right_curverad)
@@ -289,7 +298,54 @@ def get_lane_curvature(lane_img):
     right_curverad = ((1 + (2*right_fit_cr[0]*right_y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
     # Now our radius of curvature is in meters
     print(left_curverad, 'm', right_curverad, 'm')
-    return left_curverad,right_curverad
+    return left_fitx,right_fitx,ploty
 
-# de
 
+def draw_lane(image, undist,warped,M_unwarp,left_fitx, right_fitx,ploty):
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(warped).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+    ploty = np.linspace(0, warped.shape[0]-1, warped.shape[0] )
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+    plt.imshow(color_warp)
+    plt.show()
+    ret,Invert_M_unwarp = cv2.invert(M_unwarp)
+    print(Invert_M_unwarp)
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = cv2.warpPerspective(color_warp, Invert_M_unwarp, (image.shape[1], image.shape[0])) 
+    plt.imshow(newwarp)
+    plt.show()
+    # Combine the result with the original image
+    result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+ 
+    return result
+
+def calculate_offset():
+    return
+
+def find_lane_pipeline(image):
+    # undistort
+    mtx, dist, rvecs, tvecs = load_cam_cal('cam_cal')
+
+    undist = cv2.undistort(image, mtx, dist, None, mtx)
+
+    binary_abs = abs_sobel_thresh(test_img, orient='x', thresh=(20,150))
+
+    binary_hls = hls_threshold(test_img,  color = 's', thresh=(170,255))
+
+    warped = warpPerspective(combined_binary, M_unwarp)
+
+    result = image
+    return result
+
+def load_video():
+    video_path = 'project_video.mp4'
+    # clip1 = VideoFileClip(video_path))
+    clip1 = VideoFileClip(video_path).subclip(0,5)
+    white_clip = clip1.fl_image(process_image_function)
