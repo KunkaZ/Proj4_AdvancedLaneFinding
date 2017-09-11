@@ -19,13 +19,21 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[image0]: ./report_image/orig.png "Original"
+[image1]: ./report_image/undistort_output.png "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
+[image3]: ./report_image/binary_combo_example.png "Binary Example"
+[image4]: ./report_image/warp_verify.png "Warp Example"
+[color_fit_lines]: ./report_image/color_fit_lines.png "Fit Visual"
+[image6]: ./report_image/example_output.png "Output"
 [video1]: ./project_video.mp4 "Video"
+[warped_lane]: ./report_image/warped_binary.png "warped_lane"
+[curvature_eq]: ./report_image/curvature_eq.png "curvature_eq"
+[after1]: ./report_image/discussion/after.png "after1"
+[after2]: ./report_image/discussion/after2.png "after2"
+[before1]: ./report_image/discussion/before1.png "before1"
+[before2]: ./report_image/discussion/before2.png "before2"
+[binary]: ./report_image/discussion/binary.png "binary"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
