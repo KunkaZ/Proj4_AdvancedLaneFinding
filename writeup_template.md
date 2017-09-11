@@ -120,19 +120,28 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
 
-![alt text][image5]
+With applying thresholding method mentioned in point 2, I get a binary image of warped lane:
+![alt text][warped_lane]
+Each lane lines are fit with a 2nd order polynomial, shown in green curve in following image:   
+![alt text][color_fit_lines]
+
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Lane curvature and vehicle position is caculated in function `get_lane_curvature()` in `lane_finding.py`.   
+Lane curvature was calculated according to a formula for the radius of curvature at any point x for the curve y = f(x)![alt text][curvature_eq ].
+
+Vehicle position shift is ca
+x axis values of point in left lane line and right lane line in warped binary image shown in bullet 4 are used for calculation of vehicle position shift. Following equation is used   
+### center_x_meter = ( (left_lane_x + right_lane_x) - image_size_x_max ) /2 * meter_per_pix_x_axis   
+Code implementation is in`get_lane_curvature()` from line 309~320.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I implemented this step in function `draw_lane()` in `lane_finding.py`.  Here is an example of my result on a test image:
 
-![alt text][image6]
+![alt text][image6
 
 ---
 
