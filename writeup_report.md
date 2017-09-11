@@ -1,10 +1,10 @@
 ## Advanced Lane Finding Project Summary
 
-
-
 ---
 
-### The goals / steps of this project are the following:
+**Advanced Lane Finding Project**
+
+The goals / steps of this project are the following:
 
 * Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
 * Apply a distortion correction to raw images.
@@ -32,7 +32,12 @@
 [before1]: ./report_image/discussion/before1.png "before1"
 [before2]: ./report_image/discussion/before2.png "before2"
 [binary]: ./report_image/discussion/binary.png "binary"
+
+
 ---
+
+
+
 
 ### Camera Calibration
 
@@ -46,9 +51,9 @@ I then used the output `objpoints` and `imgpoints` to compute the camera calibra
 Undistorted image
 ![alt text][image1]
 
+
 ### Pipeline (single images)
 
-Pipeline code for video is in `pipeline2.py `. Pipeline code for single images is in `pipeline.py`
 
 #### 1. Provide an example of a distortion-corrected image.
 
@@ -60,15 +65,19 @@ Undistorted image:
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
+
 Different thresholding methods were implemented in `lane_finding.py`. 
+
 | threshold variable        | function name   | 
-|:-------------:|:-------------:| 
+|:-----------------------------:|:---------------------------:| 
 | sobel gradient                | `abs_sobel_thresh()`        | 
 | sobel gradient magnitude      | `mag_sobel_thresh()`      |
 | sobel gradient direction      | `dir_sobel_threshold()`     |
 | RBG color                     | `bgr_threshold()`        |
 | HLS color                     | `hls_threshold()`        |
 | LAB color                     | `lab_threshold()`        |
+
+
 
 After tied different combination for thresholding methold, I used a combination of HLS color and sobel gradient thresholds to generate a binary image.  Here's an example of my output for this step.  
 
@@ -102,12 +111,16 @@ I verified that my perspective transform was working as expected by drawing the 
 
 ![alt text][image4]
 
+
+
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+
 
 With applying thresholding method mentioned in point 2, I get a binary image of warped lane:
 ![alt text][warped_lane]
 Each lane lines are fit with a 2nd order polynomial, shown in green curve in following image:   
 ![alt text][color_fit_lines]
+
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
