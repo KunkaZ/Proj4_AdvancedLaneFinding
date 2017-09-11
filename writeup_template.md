@@ -141,7 +141,7 @@ Code implementation is in`get_lane_curvature()` from line 309~320.
 
 I implemented this step in function `draw_lane()` in `lane_finding.py`.  Here is an example of my result on a test image:
 
-![alt text][image6
+![alt text][image6]
 
 ---
 
@@ -149,7 +149,7 @@ I implemented this step in function `draw_lane()` in `lane_finding.py`.  Here is
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](https://youtu.be/YWjNg0QpPfc)
 
 ---
 
@@ -157,4 +157,26 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+##### 1) Some lane lines are not identified well on some video frames and it caused inaccurate Radius of curvature. 
+I added a leakage low pass filter to radius of curvature calculation over time. The equation is given as
+
+Curvature[k] = Curvature[k-1] * 0.95 + Curvature_measured * 0.05.
+
+It can make the radius of curvature more smooth. It's implemented in line 70~81 in `pipeline2.py`.
+
+##### 2) Another issue is algorithm of finding window centroids in function `find_window_centroids` is not robust enough. Sometime it returns wrong centroids and also causes wrong curve fitting coefficient and inaccurate Radius of curvature.
+The root cause is it relies on the maximum value of convolution value of mask window slides through 1 layer of image. However, sometime the maxium value is zero, which means binary image did not capture lane lines. In this case centroids will use a initial value get from half of the binary image, which is very inaccurate.    
+I add some code which will check if maximum convolution signal is too small, we do not trust this center, and use previous one instead or trust part of current measured center. In this way, noise can be filtered out.
+Code implementation is in line 258~288 in function `find_window_centroids()`.   
+
+Original binary image of warped lane lines
+![alt text][binary]
+Before fix, noise has big impact on right lane line and cause overfitting issue. Green mask did not cover all the lane aera.   
+
+![alt text][before1]
+![alt text][before2]
+
+After fix, right edge of green mask on original picture is more close to real right lane line and its coverage is much better.    
+
+![alt text][after1]
+![alt text][after2]
