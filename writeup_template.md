@@ -70,7 +70,18 @@ Undistorted image:
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+
+Different thresholding methods were implemented in `lane_finding.py`. 
+| threshold variable        | function name   | 
+|:-------------:|:-------------:| 
+| sobel gradient                | `abs_sobel_thresh()`        | 
+| sobel gradient magnitude      | `mag_sobel_thresh()`      |
+| sobel gradient direction      | `dir_sobel_threshold()`     |
+| RBG color                     | `bgr_threshold()`        |
+| HLS color                     | `hls_threshold()`        |
+| LAB color                     | `lab_threshold()`        |
+
+After tied different combination for thresholding methold, I used a combination of HLS color and sobel gradient thresholds to generate a binary image.  Here's an example of my output for this step.  
 
 ![alt text][image3]
 
