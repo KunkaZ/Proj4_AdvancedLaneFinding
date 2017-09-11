@@ -72,8 +72,9 @@ Undistorted image:
 
 
 Different thresholding methods were implemented in `lane_finding.py`. 
+
 | threshold variable        | function name   | 
-|:-------------:|:-------------:| 
+|:-----------------------------:|:---------------------------:| 
 | sobel gradient                | `abs_sobel_thresh()`        | 
 | sobel gradient magnitude      | `mag_sobel_thresh()`      |
 | sobel gradient direction      | `dir_sobel_threshold()`     |
@@ -81,39 +82,41 @@ Different thresholding methods were implemented in `lane_finding.py`.
 | HLS color                     | `hls_threshold()`        |
 | LAB color                     | `lab_threshold()`        |
 
+
+
 After tied different combination for thresholding methold, I used a combination of HLS color and sobel gradient thresholds to generate a binary image.  Here's an example of my output for this step.  
 
 ![alt text][image3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+An unwarp calibration is done after camera calibration. It's implemented in function `unwarp_cal` in `lane_finding.py`. It returns a warp transformation matrix.
+
+ Source point are manually chosen from a calibration image and hard codeding in function `unwarp_cal`. Destination points are generated with offset and image size. 
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+    offsetX = 200;
+    offsetY = 0;
+    src = np.float32([(564, 470), (720, 470), (1120, 720), (190, 720)])
+    dst = np.float32([[offsetX, offsetY], [img_size[0]-offsetX, offsetY], 
+                                        [img_size[0]-offsetX, img_size[1]-offsetY], 
+                                        [offsetX, img_size[1]-offsetY]])
 ```
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 564, 470      | 320, 0        | 
+| 720, 470      | 320, 720      |
+| 1120, 720     | 960, 720      |
+| 190, 720      | 960, 0        |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image. (Note that this images is not the image for pipeline demonstration. This image has a straight lane and is good for warp calibration.)
 
 ![alt text][image4]
+
+
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
