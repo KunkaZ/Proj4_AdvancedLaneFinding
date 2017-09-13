@@ -144,7 +144,7 @@ I implemented this step in function `draw_lane()` in `lane_finding.py`.  Here is
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](https://youtu.be/YWjNg0QpPfc)
+Here's a [link to my video result](https://youtu.be/J4TemNWdIKo)
 
 ---
 
