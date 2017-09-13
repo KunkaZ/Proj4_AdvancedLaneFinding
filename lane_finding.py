@@ -17,7 +17,7 @@ import glob
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
 
-debug_switch = 1
+debug_switch = 0
 output_images_path  = 'output_images/'
 test_imges_path     = 'test_images/'
 examples_path       = 'examples/'
@@ -223,7 +223,9 @@ def window_mask(width, height, img_ref, center,level):
 
 def find_window_centroids(warped):
     global debug_switch
+    # debug_switch = 1
     if debug_switch:
+        print('CALL find_window_centroids()')
         plt.imshow(warped)
         plt.show()
     window_width = 50 
@@ -236,16 +238,45 @@ def find_window_centroids(warped):
     # and then np.convolve the vertical image slice with the window template 
     
     # Sum quarter bottom of image to get slice, could use a different ratio
+    l_quarter_max = -100
+    r_quarter_max = -100
+
     l_sum = np.sum(warped[int(3*warped.shape[0]/4):,:int(warped.shape[1]/2)], axis=0)
     l_center = np.argmax(np.convolve(window,l_sum))-window_width/2
     r_sum = np.sum(warped[int(3*warped.shape[0]/4):,int(warped.shape[1]/2):], axis=0)
     r_center = np.argmax(np.convolve(window,r_sum))-window_width/2+int(warped.shape[1]/2)
+
+    if np.amax(np.convolve(window,l_sum)) < 500:
+        for i in range(4):
+            i = 4-i
+            l_sum = np.sum(warped[int(i*warped.shape[0]/4) : int((i+1)*warped.shape[0]/4),:int(warped.shape[1]/2)], axis=0)
+            if l_quarter_max < np.amax(np.convolve(window,l_sum)):
+                l_quarter_max = np.amax(np.convolve(window,l_sum))
+                l_center = np.argmax(np.convolve(window,l_sum))-window_width/2
+                if l_quarter_max > 500:
+                    break
+
+    if np.amax(np.convolve(window,r_sum)) < 500:
+        for i in range(4):
+            i = 4-i
+            # print('i=',i)
+            r_sum = np.sum(warped[int(i*warped.shape[0]/4) : int((i+1)*warped.shape[0]/4):,int(warped.shape[1]/2):], axis=0)
+            # print('np.amax(np.convolve(window,r_sum))=',np.amax(np.convolve(window,r_sum)))
+            if r_quarter_max < np.amax(np.convolve(window,r_sum)):
+                r_quarter_max = np.amax(np.convolve(window,r_sum))
+                r_center = np.argmax(np.convolve(window,r_sum))-window_width/2+int(warped.shape[1]/2)
+                # print('np.amax(np.convolve(window,r_sum))')
+                # print(np.amax(np.convolve(window,r_sum)))
+                if r_quarter_max > 500:
+                    break
+
+
     # print('window_centroids')
     # Add what we found for the first layer
     window_centroids.append((l_center,r_center))
     # max_cov_left = 0
-    max_cov_left_trust  = -100
-    max_cov_right_trust = -100
+    max_cov_left_trust  = l_center
+    max_cov_right_trust = r_center
     # Go through each layer looking for max pixel locations
     for level in range(1,(int)(warped.shape[0]/window_height)):
         # convolve the window into the vertical slice of the image
@@ -293,9 +324,9 @@ def find_window_centroids(warped):
         window_centroids.append((l_center,r_center))
         if debug_switch:
             print('l_center :',l_center,' r_center:',r_center)
-            # print('left :',max_cov_left,' right:',max_cov_right)
+            print('left :',max_cov_left,' right:',max_cov_right)
     if debug_switch:
-     print('window_centroids:',window_centroids)
+        print('window_centroids:',window_centroids)
     return window_centroids
 
 def get_lane_curvature(lane_img):
@@ -307,17 +338,6 @@ def get_lane_curvature(lane_img):
     lefty = np.array([])
     rightx = np.array([])
     righty = np.array([])
-    # for xy in pix_coor:
-    #     # print(xy)
-    #     if xy[1] <= xmax/2 :
-    #         leftx = np.append(leftx,xy[1])
-    #         lefty = np.append(lefty,xy[0])
-    #     else:
-    #         rightx = np.append(rightx,xy[1])
-    #         righty = np.append(righty,xy[0])
-    # print('get lane')
-    # print(binary_curv_img.shape)
-    # print(pix_coor.shape)
     coor_left = pix_coor[pix_coor[:,1] <= xmax/2]
     coor_right = pix_coor[pix_coor[:,1] > xmax/2]
     # print(coor_left.shape)
@@ -340,15 +360,6 @@ def get_lane_curvature(lane_img):
     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
     right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
     
-    if debug_switch:
-        plt.plot(pix_coor[:,1],pix_coor[:,0], 'o', color='red', markersize=1)
-        plt.plot(leftx,lefty, 'o', color='red', markersize=1)
-        plt.plot(rightx,righty, 'o', color='blue', markersize=1)
-        plt.plot(left_fitx, ploty, color='green', linewidth=3)
-        plt.plot(right_fitx, ploty, color='green', linewidth=3)
-        plt.gca().invert_yaxis() 
-        plt.show()
-
     # calculate curvature in pixel
     left_y_eval = np.max(ploty)
     right_y_eval = np.max(ploty)
@@ -367,12 +378,22 @@ def get_lane_curvature(lane_img):
     left_curverad = ((1 + (2*left_fit_cr[0]*left_y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*right_y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
     # Now our radius of curvature is in meters
-    # print(left_curverad, 'm', right_curverad, 'm')
-    # print('leftx[1]',leftx[0],'rightx[1]:',rightx[0])
+ 
     # left negative, right positive
     center_shift = (np.mean(leftx[0:10]) + np.mean(rightx[0:10]) - xmax)*xm_per_pix/2
     # center_shift = (np.mean(leftx[0]) + np.mean(rightx[0]) - xmax)*xm_per_pix/2
-    # print('center_shift:',center_shift, '  ',center_shift)
+    
+    if debug_switch:
+        print(left_curverad, 'm', right_curverad, 'm')
+        print('leftx[1]',leftx[0],'rightx[1]:',rightx[0])
+        print('center_shift:',center_shift, '  ',center_shift)
+        plt.plot(pix_coor[:,1],pix_coor[:,0], 'o', color='red', markersize=1)
+        plt.plot(leftx,lefty, 'o', color='red', markersize=1)
+        plt.plot(rightx,righty, 'o', color='blue', markersize=1)
+        plt.plot(left_fitx, ploty, color='green', linewidth=3)
+        plt.plot(right_fitx, ploty, color='green', linewidth=3)
+        plt.gca().invert_yaxis() 
+        plt.show()
     return left_fitx,right_fitx,ploty,left_curverad,right_curverad,center_shift
 
 
@@ -402,6 +423,56 @@ def draw_lane(image, undist,warped,M_unwarp,left_fitx, right_fitx,ploty):
     result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
     result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
     return result
+
+def select_yellow(image):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower = np.array([20,60,60])
+    upper = np.array([38,174, 250])
+    mask = cv2.inRange(hsv, lower, upper)
+    binary = np.zeros_like(mask)
+    binary[(mask != 0)] = 1
+    return binary
+
+def hsv_combine(image):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    threshS = [120,255] 
+    threshV = [190,255]
+    H = hsv[:,:,0]
+    S = hsv[:,:,1]
+    V = hsv[:,:,2]
+    
+    binary = np.zeros_like(H)
+    binary1 = np.zeros_like(H)
+    binary2 = np.zeros_like(H)
+    binary1[(S > threshS[0]) & (S <= threshS[1])] = 1
+    binary2[(V > threshV[0]) & (V <= threshV[1])] = 1
+    binary[ (binary1 ==1) | (binary2 == 1)] = 1
+    # f, axarr2 = plt.subplots(2,2)
+    # f.tight_layout()
+    # print('binary',binary.shape)
+    # axarr2[0,0].imshow(binary, cmap='gray')
+    # # axarr2[0,0].imshow(test_img[:,:,::-1], cmap='gray')
+    # axarr2[0,0].set_title('binary', fontsize=10)
+
+
+    # axarr2[0,1].imshow(binary1, cmap='gray')
+    # axarr2[0,1].set_title('S', fontsize=10)
+
+    # axarr2[1,0].imshow(binary2, cmap='gray')
+    # axarr2[1,0].set_title('V', fontsize=10)
+
+    # axarr2[1,1].imshow(image[...,::-1], cmap='gray')
+    # axarr2[1,1].set_title('combined_binary2', fontsize=10)
+    # plt.show()
+    return binary
+
+def select_white(image):
+    lower = np.array([202,202,202])
+    upper = np.array([255,255,255])
+    mask = cv2.inRange(image, lower, upper)
+    binary = np.zeros_like(mask)
+    binary[(mask != 0)] = 1
+    return binary
 
 def calculate_offset():
     return

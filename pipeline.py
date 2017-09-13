@@ -2,14 +2,15 @@ from lane_finding import *
 # plt.ion()
 # import matplotlib as mp
 # mp.interactive(True)
-
+global debug_switch
+debug_switch = 1
 # Step 1: Compute the camera calibration matrix and distortion coefficients given a set of chessboard images
 mtx, dist, rvecs, tvecs = load_cam_cal('cam_cal')
 M_unwarp = unwarp_cal(mtx, dist)
 
-test_image_name = 'test_images/test2.jpg' 
+# test_image_name = 'test_images/test2.jpg' 
 # test_image_name = 'test_images/straight_lines1.jpg'
-
+test_image_name = '5.png' 
 
 # Step 2: Apply a distortion correction to raw images.
 images = glob.glob(test_imges_path+'*.jpg')
@@ -83,17 +84,17 @@ if 0:
 
 
 binary_abs = abs_sobel_thresh(test_img, orient='x', thresh=(20,110))
-print('imshow(binary)')
+# print('imshow(binary)')
 
 
-print('mag_sobel_thresh')
+# print('mag_sobel_thresh')
 # binary1 = mag_sobel_thresh(test_img, mag_thresh=(70,150))
 binary_mag = mag_sobel_thresh(test_img, mag_thresh=(50,100))
 
-print('bgr_threshold')
+# print('bgr_threshold')
 binary_bgr = bgr_threshold(test_img,color = 'b', thresh=(80,120))
 
-print('hls_threshold')
+# print('hls_threshold')
 binary_hls = hls_threshold(test_img,  color = 's', thresh=(170,255))
 binary_hls_h = hls_threshold(test_img,  color = 'h', thresh=(15,100))
 
@@ -103,21 +104,18 @@ binary_left = dir_sobel_threshold(test_img, sobel_kernel=3, thresh=(np.pi/8, 3*n
 
 binary_right = dir_sobel_threshold(test_img, sobel_kernel=3, thresh=(5*np.pi/8, 7*np.pi/8))
 
+binary_yellow   = select_yellow(test_img)
+binary_white    = select_white(test_img)
+binary_hsv      = hsv_combine(test_img)
 # overlap binary image
-binary_img1 = binary_abs
-binary_img2 = binary_mag
-binary_img3 = binary_bgr
-binary_img4 = binary_hls
-binary_img5 = test_img
-binary_img6 = binary_right
-result = np.dstack(( np.zeros_like(binary_img1), binary_img1, binary_img2))
 
-combined_binary = np.zeros_like(binary_abs)
-combined_binary[((binary_abs == 1) | (binary_hls == 1)) | (binary_mag == 1)] = 1
+combined_binary = np.zeros_like(binary_yellow)
+# combined_binary[((binary_abs == 1) | (binary_hls == 1)) | (binary_yellow == 1) | (binary_white == 1)] = 1
+combined_binary[(binary_yellow == 1) | (binary_white == 1)] = 1
 
 combined_binary2 = np.zeros_like(binary_abs)  # use abs and hls
 combined_binary2[(binary_abs == 1) | (binary_hls == 1) ] = 1
-
+# combined_binary2[(binary_yellow == 1) | (binary_white == 1) ] = 1
 # plt.imshow(combined_binary2, cmap='gray')
 # plt.show()
 
@@ -127,28 +125,29 @@ warped = warpPerspective(combined_binary2, M_unwarp)
 
 # plt.imshow(warped, cmap='gray')
 # plt.show()
-
-
+# exit()
+print('yellow shape:',binary_yellow.shape)
+print('white shape:',binary_white.shape)
 f, axarr2 = plt.subplots(2,2)
 f.tight_layout()
-
-axarr2[0,0].imshow(warped, cmap='gray')
+print('binary_hsv',binary_hsv.shape)
+axarr2[0,0].imshow(binary_hsv, cmap='gray')
 # axarr2[0,0].imshow(test_img[:,:,::-1], cmap='gray')
-axarr2[0,0].set_title('Original Image', fontsize=10)
+axarr2[0,0].set_title('binary_hsv', fontsize=10)
 
 
-axarr2[0,1].imshow(binary_abs, cmap='gray')
-axarr2[0,1].set_title('sobel gradiet thresholding', fontsize=10)
+axarr2[0,1].imshow(binary_yellow, cmap='gray')
+axarr2[0,1].set_title('yellow', fontsize=10)
 
-axarr2[1,0].imshow(binary_hls, cmap='gray')
-axarr2[1,0].set_title('hls color space thresholding', fontsize=10)
+axarr2[1,0].imshow(combined_binary, cmap='gray')
+axarr2[1,0].set_title('combined_binary', fontsize=10)
 
-axarr2[1,1].imshow(combined_binary2, cmap='gray')
-axarr2[1,1].set_title('combine two thresholds', fontsize=10)
+axarr2[1,1].imshow(test_img, cmap='gray')
+axarr2[1,1].set_title('combined_binary2', fontsize=10)
 plt.show()
 
 
-plt.show()
+# plt.show()
 # exit()
 
 # Step 5: Detect lane pixels and fit to find the lane boundary
@@ -192,19 +191,19 @@ if len(window_centroids) > 0:
 else:
     output = np.array(cv2.merge((warped,warped,warped)),np.uint8)
 
-# f, axarr = plt.subplots(2,2)
-# f.tight_layout()
-# axarr[0,0].imshow(warped, cmap='gray')
-# axarr[0,0].set_title('warped', fontsize=10)
+f, axarr = plt.subplots(2,2)
+f.tight_layout()
+axarr[0,0].imshow(warped, cmap='gray')
+axarr[0,0].set_title('warped', fontsize=10)
 
-# axarr[0,1].imshow(output, cmap='gray')
-# axarr[0,1].set_title('output', fontsize=10)
+axarr[0,1].imshow(output, cmap='gray')
+axarr[0,1].set_title('output', fontsize=10)
 
-# axarr[1,0].imshow(l_points, cmap='gray')
-# axarr[1,0].set_title('l_points', fontsize=10)
+axarr[1,0].imshow(l_points, cmap='gray')
+axarr[1,0].set_title('l_points', fontsize=10)
 
-# axarr[1,1].imshow(r_points, cmap='gray')
-# axarr[1,1].set_title('r_points', fontsize=10)
+axarr[1,1].imshow(r_points, cmap='gray')
+axarr[1,1].set_title('r_points', fontsize=10)
 
 binary_curv_img = output[:,2,:]
 print(output.shape)
@@ -236,34 +235,30 @@ result = cv2.putText(result,center_shift_text,(40,150), font, 1, (255,255,255), 
 plt.imshow(result)
 plt.show()
 
-f, axarr = plt.subplots(2,4)
-f.tight_layout()
-axarr[0,0].imshow(binary_img1, cmap='gray')
-axarr[0,0].set_title('abs_sobel', fontsize=10)
+# f, axarr = plt.subplots(2,4)
+# f.tight_layout()
+# axarr[0,0].imshow(binary_img1, cmap='gray')
+# axarr[0,0].set_title('abs_sobel', fontsize=10)
 
-axarr[0,1].imshow(binary_img2, cmap='gray')
-axarr[0,1].set_title('mag_sobel', fontsize=10)
+# axarr[0,1].imshow(binary_img2, cmap='gray')
+# axarr[0,1].set_title('mag_sobel', fontsize=10)
 
-axarr[1,0].imshow(binary_lab_b, cmap='gray')
-axarr[1,0].set_title('lab_b', fontsize=10)
+# axarr[1,0].imshow(binary_lab_b, cmap='gray')
+# axarr[1,0].set_title('lab_b', fontsize=10)
 
-axarr[1,1].imshow(binary_img4, cmap='gray')
-axarr[1,1].set_title('hls_s', fontsize=10)
+# axarr[1,1].imshow(binary_img4, cmap='gray')
+# axarr[1,1].set_title('hls_s', fontsize=10)
 
-axarr[0,2].imshow(combined_binary, cmap='gray')
-axarr[0,2].set_title('com_binary', fontsize=10)
+# axarr[0,2].imshow(combined_binary, cmap='gray')
+# axarr[0,2].set_title('com_binary', fontsize=10)
 
-axarr[1,2].imshow(combined_binary2, cmap='gray')
-axarr[1,2].set_title('com_binary2', fontsize=10)
+# axarr[1,2].imshow(combined_binary2, cmap='gray')
+# axarr[1,2].set_title('com_binary2', fontsize=10)
 
-axarr[0,3].imshow(output, cmap='gray')
-axarr[0,3].set_title('wind_fit',fontsize=10)
+# axarr[0,3].imshow(output, cmap='gray')
+# axarr[0,3].set_title('wind_fit',fontsize=10)
 
-axarr[1,3].imshow(result, cmap='gray')
-axarr[1,3].set_title('final')
+# axarr[1,3].imshow(result, cmap='gray')
+# axarr[1,3].set_title('final')
 
-
-
-
-
-plt.show()
+# plt.show()

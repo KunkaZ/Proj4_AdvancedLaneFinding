@@ -5,7 +5,10 @@ left_cur_k      = 0
 left_cur_k_pre  = 0
 right_cur_k     = 0
 right_cur_k_pre  = 0
+frame_index = 0
 def process_image(image_rgb):
+    global frame_index
+    # return image_rgb
     # image_rgb is from video frame, all function in lane_finding is using bgr image
     image_bgr = image_rgb[...,::-1]
     global mtx, dist, rvecs, tvecs, M_unwarp
@@ -14,11 +17,16 @@ def process_image(image_rgb):
     # Step 2: Apply a distortion correction to raw images.
     test_img = undistort(image_bgr,mtx, dist)
     # Step 3: Use color transforms, gradients, etc., to create a thresholded binary image.
-
+    binary_hls = np.zeros_like(test_img[:,:,1])
+    binary_abs = np.zeros_like(test_img[:,:,1])
     binary_abs = abs_sobel_thresh(test_img, orient='x', thresh=(20,150))
-    binary_hls = hls_threshold(test_img,  color = 's', thresh=(170,200))
+    # binary_hls = hls_threshold(test_img,  color = 's', thresh=(170,255))  #170,255
+    binary_yellow   = select_yellow(test_img)
+    binary_white    = select_white(test_img)
+    binary_hsv      = hsv_combine(test_img)
+    
     combined_binary2 = np.zeros_like(binary_abs)  # use abs and hls
-    combined_binary2[(binary_abs == 1) | (binary_hls == 1) ] = 1
+    combined_binary2[((binary_abs == 1) | (binary_hls == 1)) | (binary_yellow == 1) | (binary_white == 1)] = 1
 
     # Step 4: Apply a perspective transform to rectify binary image ("birds-eye view").
     # top_left, top_right, bottom_right, bottom_left. 
@@ -26,12 +34,19 @@ def process_image(image_rgb):
 
     # Step 5: Detect lane pixels and fit to find the lane boundary
     window_centroids = find_window_centroids(warped)
+
+
+
+
     # If we found any window centers
     window_width = 50 
     window_height = 80 # Break image into 9 vertical layers since image height is 720
     margin = 100 # How much to slide left and right for searching
 
     if len(window_centroids) > 0:
+        #calculate center shift
+        
+
 
         # Points used to draw all the left and right windows
         l_points = np.zeros_like(warped)
@@ -62,7 +77,7 @@ def process_image(image_rgb):
     # 6. Determine the curvature of the lane and vehicle position with respect to center.
     left_fitx,right_fitx,ploty,left_curverad,right_curverad,center_shift = get_lane_curvature(output)
     # """
-
+    # print('center_shift_mine',center_shift)
     # 7. plot lane on the image
     test_img_rgb = image_rgb
     result = draw_lane(test_img_rgb,test_img,warped,M_unwarp,left_fitx, right_fitx,ploty)
@@ -80,6 +95,13 @@ def process_image(image_rgb):
     right_cur_k = 0.9*right_cur_k_pre + 0.1*right_curverad
     right_cur_k_pre = right_cur_k
 
+    # overwrite center shift with new method
+    camera_position = image_rgb.shape[1]/2
+    xm_per_pix = 3.7/880
+    center_shift = ((left_fitx[-1] + right_fitx[-1])/2 - camera_position)*xm_per_pix
+    # print('center_shift',center_shift)
+
+
     avg_cur = (left_cur_k+right_cur_k)/2
     if center_shift > 0.0:
         center_shift_text = 'Vehicle is ' + str(round(center_shift,2)) +' [m] left of center.'
@@ -96,6 +118,27 @@ def process_image(image_rgb):
 
     result = cv2.putText(result,center_shift_text,(40,150), font, 1, (255,255,255), 2, cv2.LINE_AA)
 
+    if debug_switch:
+        # print('yellow shape:',binary_yellow.shape)
+        # print('white shape:',binary_white.shape)
+        f, axarr2 = plt.subplots(2,2)
+        f.tight_layout()
+        axarr2[0,0].imshow(image_rgb, cmap='gray')
+        # axarr2[0,0].imshow(test_img[:,:,::-1], cmap='gray')
+        axarr2[0,0].set_title('original', fontsize=10)
+        axarr2[0,1].imshow(combined_binary2, cmap='gray')
+        axarr2[0,1].set_title('combined_binary2', fontsize=10)
+        axarr2[1,0].imshow(warped, cmap='gray')
+        axarr2[1,0].set_title('warped', fontsize=10)
+        axarr2[1,1].imshow(result, cmap='gray')
+        axarr2[1,1].set_title('final result', fontsize=10)
+        plt.show()
+        # './debugimage/' + 
+        path = str(frame_index)+'.png'
+        path_result = str(frame_index)+'result.png'
+        cv2.imwrite(path,image_bgr)
+        cv2.imwrite(path_result,result)
+        frame_index +=1
     return result
 
 # white_output = 'test_videos_output/solidWhiteRight.mp4'
@@ -105,8 +148,10 @@ output_video = 'output_video.mp4'
 ## To do so add .subclip(start_second,end_second) to the end of the line below
 ## Where start_second and end_second are integer values representing the start and end of the subclip
 ## You may also uncomment the following line for a subclip of the first 5 seconds
-# clip1 = VideoFileClip(video_path).subclip(0,-1)
+
+# clip1 = VideoFileClip(video_path).subclip(0.5,1)
 clip1 = VideoFileClip(video_path)
+
 # clip1 = VideoFileClip("test_videos/solidWhiteRight.mp4")
 white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
 white_clip.write_videofile(output_video, audio=False)
